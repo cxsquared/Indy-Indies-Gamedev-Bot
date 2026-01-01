@@ -1,27 +1,19 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { MeetupService } from './services/meetup/meetup.service';
 import { EventSyncUseCase } from './use-cases/event-sync.use-case';
 
 @Controller()
 export class AppController {
-  constructor(
-    private readonly meetupService: MeetupService,
-    private readonly eventSyncUseCase: EventSyncUseCase,
-  ) {}
+  constructor(private readonly meetupService: MeetupService) {}
 
   @Get('events')
-  async getEvents() {
-    const events = await this.meetupService.getEvents();
+  async getEvents(@Query('urlname') urlname: string) {
+    const events = await this.meetupService.getEvents(urlname);
 
     return events?.map((e) => {
       return {
         ...e.node,
       };
     });
-  }
-
-  @Post('sync-events')
-  async postSyncEvents() {
-    this.eventSyncUseCase.syncEvents();
   }
 }

@@ -12,7 +12,7 @@ import { EventEdge, Query } from '../../types/__generated__/graphql';
 export class MeetupService {
   constructor() {}
 
-  public async getEvents(): Promise<EventEdge[] | undefined> {
+  public async getEvents(urlname: string): Promise<EventEdge[] | undefined> {
     const client = new ApolloClient({
       link: new HttpLink({ uri: 'https://api.meetup.com/gql-ext' }),
       cache: new InMemoryCache(),
@@ -26,6 +26,7 @@ export class MeetupService {
               edges {
                 node {
                   dateTime
+                  endTime
                   description
                   eventUrl
                   id
@@ -48,7 +49,7 @@ export class MeetupService {
     const response = await client.query({
       query: GET_GROUP_BY_URLNAME,
       variables: {
-        urlname: 'gamedevin',
+        urlname: urlname,
       },
     });
 

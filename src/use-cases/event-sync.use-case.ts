@@ -1,6 +1,5 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable } from '@nestjs/common';
+import { Guild, GuildChannel } from 'discord.js';
 import {
   DiscordService,
   type CreateEventDto,
@@ -10,7 +9,7 @@ import { Event } from 'src/types/__generated__/graphql';
 
 @Injectable()
 export class EventSyncUseCase {
-  // The event sync is idenpotent so it's fine for this to get cleared if we reset the server
+  // The event sync is idempotent so it's fine for this to get cleared if we reset the server
   private readonly createdEvents = new Set<string>();
 
   constructor(
@@ -18,12 +17,11 @@ export class EventSyncUseCase {
     private readonly discordService: DiscordService,
   ) {}
 
-  @Cron(CronExpression.EVERY_2_HOURS)
-  async syncEvents() {
-    const meetupEvents = await this.meetupService.getEvents();
+  async syncEvents(guild: Guild, channel: GuildChannel, meetupUrlname: string) {
+    const meetupEvents = await this.meetupService.getEvents(meetupUrlname);
 
     const meetupEventsToCreate = meetupEvents
-      ?.filter((e) => !this.createdEvents.has(e.node.id))
+      ?.filter((e) => !this.createdEvents.has(e.node.title))
       .map((e) => {
         return {
           name: e.node.title,
@@ -31,6 +29,7 @@ export class EventSyncUseCase {
           startDateTimeUtc: e.node.dateTime,
           endDateTimeUtc: e.node.endTime,
           location: this.createLocation(e.node),
+          channel: channel,
         } as CreateEventDto;
       });
 
@@ -38,7 +37,7 @@ export class EventSyncUseCase {
 
     for (const event of meetupEventsToCreate) {
       this.createdEvents.add(event.name);
-      await this.discordService.createEvent(event);
+      await this.discordService.createEvent(guild, event);
     }
   }
 
