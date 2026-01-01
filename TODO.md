@@ -1,0 +1,4 @@
+- [x] Add meetup.com API support
+- [ ] Add discord API support
+- [ ] Add endpoint to fetch event data
+- [ ] Add some form of authentication

@@ -1,0 +1,56 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import {
+  DiscordService,
+  type CreateEventDto,
+} from 'src/services/discord/discord.service';
+import { MeetupService } from 'src/services/meetup/meetup.service';
+import { Event } from 'src/types/__generated__/graphql';
+
+@Injectable()
+export class EventSyncUseCase {
+  // The event sync is idenpotent so it's fine for this to get cleared if we reset the server
+  private readonly createdEvents = new Set<string>();
+
+  constructor(
+    private readonly meetupService: MeetupService,
+    private readonly discordService: DiscordService,
+  ) {}
+
+  @Cron(CronExpression.EVERY_2_HOURS)
+  async syncEvents() {
+    const meetupEvents = await this.meetupService.getEvents();
+
+    const meetupEventsToCreate = meetupEvents
+      ?.filter((e) => !this.createdEvents.has(e.node.id))
+      .map((e) => {
+        return {
+          name: e.node.title,
+          description: e.node.description,
+          startDateTimeUtc: e.node.dateTime,
+          endDateTimeUtc: e.node.endTime,
+          location: this.createLocation(e.node),
+        } as CreateEventDto;
+      });
+
+    if (!meetupEventsToCreate) return;
+
+    for (const event of meetupEventsToCreate) {
+      this.createdEvents.add(event.name);
+      await this.discordService.createEvent(event);
+    }
+  }
+
+  private createLocation(node: Event) {
+    if (
+      node.venues == null ||
+      node.venues?.length <= 0 ||
+      node.venues[0].venueType == 'online'
+    )
+      return null;
+
+    const venue = node.venues[0];
+    return `${venue.address} ${venue.city}, ${venue.state} ${venue.postalCode}`;
+  }
+}
