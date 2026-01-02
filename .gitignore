@@ -54,3 +54,21 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# sqllite
+*.db
+*.bat
+*.exp
+*.pdb
+*.dll
+*.a
+*.so
+*.db-shm
+*.db-wal
+*.sqlite
+
+# C benchmark binary
+bench/bench
+deno.lock
+bun.lockb
+.DS_Store

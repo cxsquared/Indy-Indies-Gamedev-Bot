@@ -8,6 +8,9 @@ import { IntentsBitField } from 'discord.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppUpdate } from './app.update';
 import { AppCommands } from './app.commands';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AutoSync } from './services/typeorm/entities/auto-sync.entity';
+import { AppScheduler } from './app.scheduler';
 
 @Module({
   imports: [
@@ -22,12 +25,22 @@ import { AppCommands } from './app.commands';
       useFactory: async (configService: ConfigService) => ({
         token: configService.get<string>('DISCORD_TOKEN') ?? '',
         intents: [IntentsBitField.Flags.GuildScheduledEvents],
-        development: configService.get<string>('SERVER_WHITELIST')?.split(','),
+        development: configService.get<string>('DEV_SERVER_ID')
+          ? [configService.get<string>('DEV_SERVER_ID') ?? '']
+          : false,
       }),
       inject: [ConfigService],
     }),
+    TypeOrmModule.forRoot({
+      type: 'better-sqlite3',
+      database: 'indybotdb.db',
+      enableWAL: true,
+      synchronize: true,
+      autoLoadEntities: true,
+    }),
+    TypeOrmModule.forFeature([AutoSync]),
   ],
   controllers: [AppController],
-  providers: [AppUpdate, AppCommands],
+  providers: [AppUpdate, AppCommands, AppScheduler],
 })
 export class AppModule {}

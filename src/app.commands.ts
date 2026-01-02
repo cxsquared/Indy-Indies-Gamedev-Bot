@@ -8,15 +8,11 @@ import {
   type SlashCommandContext,
 } from 'necord';
 import { EventSyncUseCase } from './use-cases/event-sync.use-case';
-import {
-  ChannelType,
-  Collection,
-  GuildChannel,
-  GuildMemberRoleManager,
-  MessageFlags,
-  Role,
-} from 'discord.js';
+import { ChannelType, GuildChannel, MessageFlags } from 'discord.js';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { AutoSync } from './services/typeorm/entities/auto-sync.entity';
+import { Repository } from 'typeorm';
 
 export class SyncEventsDto {
   @StringOption({
@@ -41,6 +37,8 @@ export class AppCommands {
   constructor(
     private readonly eventSyncUseCase: EventSyncUseCase,
     private readonly configService: ConfigService,
+    @InjectRepository(AutoSync)
+    private readonly autoSyncRepo: Repository<AutoSync>,
   ) {}
 
   @SlashCommand({
@@ -89,6 +87,76 @@ export class AppCommands {
 
       return interaction.reply({
         content: 'Events synced',
+        flags: MessageFlags.Ephemeral,
+      });
+    } catch (e) {
+      this.logger.error(`Sync Event error: ${JSON.stringify(e)}`);
+    }
+  }
+
+  @SlashCommand({
+    name: 'autosync',
+    description: 'Schedules an event sync ever 2 hours',
+  })
+  public async onAutoSyncEvents(
+    @Context() [interaction]: SlashCommandContext,
+    @Options() { urlname, channel }: SyncEventsDto,
+  ) {
+    try {
+      const acceptedRole = this.configService.get<string>('ADMIN_ROLE');
+      const member = interaction.member;
+
+      // something is really dumb here where the private _roles has the roles
+      // but the getter roles doesn't
+      //@ts-expect-error
+      const roles: string[] = member != null ? member['_roles'] : [];
+
+      if (!roles.some((r) => r == acceptedRole)) {
+        return interaction.reply({
+          content: 'Only admins can initiate an auto sync',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      if (interaction.guild === null) {
+        return interaction.reply({
+          content: 'GuildId is not valid',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      if (urlname === null || urlname.replaceAll(' ', '') === '') {
+        return interaction.reply({
+          content: 'urlname is not valid',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      const existingAutoSync = await this.autoSyncRepo.findOneBy({
+        guildId: interaction.guild.id,
+      });
+
+      if (existingAutoSync) {
+        existingAutoSync.channelId = channel.id;
+        existingAutoSync.urlname = urlname;
+
+        this.autoSyncRepo.save(existingAutoSync);
+        return interaction.reply({
+          content: 'Auto sync updated',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      await this.autoSyncRepo.save(
+        this.autoSyncRepo.create({
+          guildId: interaction.guild.id,
+          channelId: channel.id,
+          urlname: urlname,
+        }),
+      );
+
+      return interaction.reply({
+        content: 'Auto sync scheduled',
         flags: MessageFlags.Ephemeral,
       });
     } catch (e) {
