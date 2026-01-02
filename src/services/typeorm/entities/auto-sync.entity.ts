@@ -1,4 +1,11 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class AutoSync {
@@ -13,4 +20,14 @@ export class AutoSync {
 
   @Column()
   urlname: string; // meetup.com urlname
+
+  @CreateDateColumn()
+  created!: Date;
+
+  @UpdateDateColumn()
+  updated!: Date;
+
+  // Add this column to your entity!
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

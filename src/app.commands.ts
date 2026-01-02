@@ -160,7 +160,57 @@ export class AppCommands {
         flags: MessageFlags.Ephemeral,
       });
     } catch (e) {
-      this.logger.error(`Sync Event error: ${JSON.stringify(e)}`);
+      this.logger.error(`Auto sync Event error: `, e);
+    }
+  }
+
+  @SlashCommand({
+    name: 'stopautosync',
+    description: 'Removes schedule for event sync ever hour',
+  })
+  public async onStopSyncEvents(@Context() [interaction]: SlashCommandContext) {
+    try {
+      const acceptedRole = this.configService.get<string>('ADMIN_ROLE');
+      const member = interaction.member;
+
+      // something is really dumb here where the private _roles has the roles
+      // but the getter roles doesn't
+      //@ts-expect-error
+      const roles: string[] = member != null ? member['_roles'] : [];
+
+      if (!roles.some((r) => r == acceptedRole)) {
+        return interaction.reply({
+          content: 'Only admins can initiate an auto sync',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      if (interaction.guild === null) {
+        return interaction.reply({
+          content: 'GuildId is not valid',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      const existingAutoSync = await this.autoSyncRepo.findOneBy({
+        guildId: interaction.guild.id,
+      });
+
+      if (existingAutoSync) {
+        await this.autoSyncRepo.softDelete(existingAutoSync.id);
+
+        return interaction.reply({
+          content: 'Auto sync stopped',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      return interaction.reply({
+        content: 'No Auto sync scheduled',
+        flags: MessageFlags.Ephemeral,
+      });
+    } catch (e) {
+      this.logger.error(`Stop auto sync Event error: ${JSON.stringify(e)}`);
     }
   }
 }
