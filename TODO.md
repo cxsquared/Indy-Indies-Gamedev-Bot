@@ -1,4 +1,6 @@
+- [ ] Make syncs auto happen
+- [ ] Add some form of authentication for api endpoints
+- [ ] Make how we determine who can run things better
 - [x] Add meetup.com API support
-- [ ] Add discord API support
-- [ ] Add endpoint to fetch event data
-- [ ] Add some form of authentication
+- [x] Add discord API support
+- [x] Add endpoint to fetch event data
