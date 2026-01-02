@@ -1,6 +1,7 @@
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ChannelType,
   Client,
   Guild,
   GuildChannel,
@@ -71,9 +72,19 @@ export class DiscordService {
       scheduledStartTime: event.startDateTimeUtc,
       scheduledEndTime: event.endDateTimeUtc,
       description: event.description.replace(/\[([^\[\]]*)\]\((.*?)\)/gm, '$1'),
-      entityType: event.location
-        ? GuildScheduledEventEntityType.External
-        : GuildScheduledEventEntityType.Voice,
+      entityType: this.getEventEntityType(event),
     });
+  }
+
+  private getEventEntityType(
+    event: CreateEventDto,
+  ): GuildScheduledEventEntityType {
+    if (event.location) {
+      return GuildScheduledEventEntityType.External;
+    }
+
+    return event.channel?.type === ChannelType.GuildStageVoice
+      ? GuildScheduledEventEntityType.StageInstance
+      : GuildScheduledEventEntityType.Voice;
   }
 }
