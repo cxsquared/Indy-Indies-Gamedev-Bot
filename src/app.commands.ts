@@ -96,7 +96,7 @@ export class AppCommands {
 
   @SlashCommand({
     name: 'autosync',
-    description: 'Schedules an event sync ever 2 hours',
+    description: 'Schedules an event sync ever hour',
   })
   public async onAutoSyncEvents(
     @Context() [interaction]: SlashCommandContext,
