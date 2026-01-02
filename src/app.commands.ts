@@ -8,7 +8,15 @@ import {
   type SlashCommandContext,
 } from 'necord';
 import { EventSyncUseCase } from './use-cases/event-sync.use-case';
-import { ChannelType, GuildChannel, MessageFlags } from 'discord.js';
+import {
+  ChannelType,
+  Collection,
+  GuildChannel,
+  GuildMemberRoleManager,
+  MessageFlags,
+  Role,
+} from 'discord.js';
+import { ConfigService } from '@nestjs/config';
 
 export class SyncEventsDto {
   @StringOption({
@@ -30,7 +38,10 @@ export class SyncEventsDto {
 @Injectable()
 export class AppCommands {
   private readonly logger = new Logger(AppCommands.name);
-  constructor(private readonly eventSyncUseCase: EventSyncUseCase) {}
+  constructor(
+    private readonly eventSyncUseCase: EventSyncUseCase,
+    private readonly configService: ConfigService,
+  ) {}
 
   @SlashCommand({
     name: 'sync',
@@ -41,6 +52,21 @@ export class AppCommands {
     @Options() { urlname, channel }: SyncEventsDto,
   ) {
     try {
+      const acceptedRole = this.configService.get<string>('ADMIN_ROLE');
+      const member = interaction.member;
+
+      // something is really dumb here where the private _roles has the roles
+      // but the getter roles doesn't
+      //@ts-expect-error
+      const roles: string[] = member != null ? member['_roles'] : [];
+
+      if (!roles.some((r) => r == acceptedRole)) {
+        return interaction.reply({
+          content: 'Only admins can initiate a sync',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
       if (interaction.guild === null) {
         return interaction.reply({
           content: 'GuildId is not valid',
