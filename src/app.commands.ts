@@ -30,7 +30,7 @@ export class SyncEventsDto {
     name: 'channel',
     description: 'The voice channel to attach to online events',
     required: true,
-    channel_types: [ChannelType.GuildVoice],
+    channel_types: [ChannelType.GuildVoice, ChannelType.GuildStageVoice],
   })
   channel: GuildChannel;
 }
