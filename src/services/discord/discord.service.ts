@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 
 export type CreateEventDto = {
+  eventId: string;
   name: string;
   startDateTimeUtc: Date;
   endDateTimeUtc: Date;

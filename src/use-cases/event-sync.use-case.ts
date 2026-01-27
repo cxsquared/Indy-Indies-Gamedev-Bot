@@ -7,13 +7,13 @@ import {
 } from 'src/services/discord/discord.service';
 import { MeetupService } from 'src/services/meetup/meetup.service';
 import { AutoSync } from 'src/services/typeorm/entities/auto-sync.entity';
+import { SyncedEvent } from 'src/services/typeorm/entities/synced-event.entity';
 import { Event } from 'src/types/__generated__/graphql';
 import { In, Repository } from 'typeorm';
 
 @Injectable()
 export class EventSyncUseCase {
   // The event sync is idempotent so it's fine for this to get cleared if we reset the server
-  private readonly createdEvents = new Set<string>();
   private readonly logger: Logger = new Logger(EventSyncUseCase.name);
 
   constructor(
@@ -21,6 +21,8 @@ export class EventSyncUseCase {
     private readonly meetupService: MeetupService,
     private readonly discordService: DiscordService,
     @InjectRepository(AutoSync) private autoSyncRepo: Repository<AutoSync>,
+    @InjectRepository(SyncedEvent)
+    private syncedEventRepo: Repository<SyncedEvent>,
   ) {}
 
   async eventAutoSync(guildIdsToSync?: string[]) {
@@ -58,25 +60,61 @@ export class EventSyncUseCase {
   async syncEvents(guild: Guild, channel: GuildChannel, meetupUrlname: string) {
     const meetupEvents = await this.meetupService.getEvents(meetupUrlname);
 
-    const meetupEventsToCreate = meetupEvents
-      ?.filter((e) => !this.createdEvents.has(e.node.title))
-      .map((e) => {
-        return {
-          name: e.node.title,
-          description: e.node.description,
-          startDateTimeUtc: e.node.dateTime,
-          endDateTimeUtc: e.node.endTime,
-          location: this.createLocation(e.node),
-          channel: channel,
-        } as CreateEventDto;
-      });
-
-    if (!meetupEventsToCreate) return;
-
-    for (const event of meetupEventsToCreate) {
-      this.createdEvents.add(event.name);
-      await this.discordService.createEvent(guild, event);
+    if (!meetupEvents || meetupEvents.length <= 0) {
+      this.logger.warn(`Failed to get meetup events for ${guild.id}`);
+      return;
     }
+
+    const meetupEventsToCreate = meetupEvents.map((e) => {
+      return {
+        eventId: e.node.id,
+        name: e.node.title,
+        description: e.node.description,
+        startDateTimeUtc: e.node.dateTime,
+        endDateTimeUtc: e.node.endTime,
+        location: this.createLocation(e.node),
+        channel: channel,
+      } as CreateEventDto;
+    });
+
+    const eventsAlreadySynced = await this.syncedEventRepo.findBy({
+      eventId: In(meetupEventsToCreate.map((m) => m.eventId)),
+      guildId: guild.id,
+    });
+
+    const alreadySyncedIds = new Set<string>(
+      eventsAlreadySynced.map((e) => e.eventId),
+    );
+
+    const eventsToSync = meetupEventsToCreate.filter(
+      (m) => !alreadySyncedIds.has(m.eventId),
+    );
+
+    if (eventsToSync.length <= 0) return;
+
+    const eventsSynced: CreateEventDto[] = [];
+    for (const event of eventsToSync) {
+      try {
+        await this.discordService.createEvent(guild, event);
+        eventsSynced.push(event);
+      } catch (e) {
+        this.logger.error(
+          `Failed to create event ${event.eventId} for guild ${guild.id}`,
+          e,
+        );
+      }
+    }
+
+    await this.syncedEventRepo.insert(
+      eventsSynced.map((es) => {
+        return {
+          eventId: es.eventId,
+          guildId: guild.id,
+          eventSource: 'meetup',
+          created: new Date(),
+        } as SyncedEvent;
+      }),
+    );
   }
 
   private createLocation(node: Event) {
