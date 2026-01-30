@@ -89,7 +89,7 @@ export class DiscordService {
     }
 
     await manager.members.ban(member, {
-      deleteMessageDays: 7,
+      deleteMessageDays: 1,
       reason: 'Triggered honeypot',
     });
   }
