@@ -7,6 +7,7 @@ import {
   GuildChannel,
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
+  GuildMember,
 } from 'discord.js';
 
 export type CreateEventDto = {
@@ -74,6 +75,22 @@ export class DiscordService {
       scheduledEndTime: event.endDateTimeUtc,
       description: event.description.replace(/\[([^\[\]]*)\]\((.*?)\)/gm, '$1'),
       entityType: this.getEventEntityType(event),
+    });
+  }
+
+  public async banMember(guild: Guild, member: GuildMember) {
+    const manager = await this.client.guilds.fetch({
+      guild,
+    });
+
+    if (!manager) {
+      console.log("couldn't find guild");
+      return;
+    }
+
+    await manager.members.ban(member, {
+      deleteMessageDays: 7,
+      reason: 'Triggered honeypot',
     });
   }
 

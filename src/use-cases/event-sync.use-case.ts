@@ -13,7 +13,6 @@ import { In, Repository } from 'typeorm';
 
 @Injectable()
 export class EventSyncUseCase {
-  // The event sync is idempotent so it's fine for this to get cleared if we reset the server
   private readonly logger: Logger = new Logger(EventSyncUseCase.name);
 
   constructor(

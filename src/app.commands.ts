@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AutoSync } from './services/typeorm/entities/auto-sync.entity';
 import { Repository } from 'typeorm';
+import { HoneypotUseCase, UpsertResult } from './use-cases/honeypot.use-case';
 
 export class SyncEventsDto {
   @StringOption({
@@ -31,11 +32,22 @@ export class SyncEventsDto {
   channel: GuildChannel;
 }
 
+export class HoneypotDto {
+  @ChannelOption({
+    name: 'channel',
+    description: 'The voice channel to attach to online events',
+    required: true,
+    channel_types: [ChannelType.GuildText],
+  })
+  channel: GuildChannel;
+}
+
 @Injectable()
 export class AppCommands {
   private readonly logger = new Logger(AppCommands.name);
   constructor(
     private readonly eventSyncUseCase: EventSyncUseCase,
+    private readonly honeypotUseCase: HoneypotUseCase,
     private readonly configService: ConfigService,
     @InjectRepository(AutoSync)
     private readonly autoSyncRepo: Repository<AutoSync>,
@@ -211,6 +223,71 @@ export class AppCommands {
       });
     } catch (e) {
       this.logger.error(`Stop auto sync Event error: ${JSON.stringify(e)}`);
+    }
+  }
+
+  @SlashCommand({
+    name: 'honeypot',
+    description: 'Desigantes a channel as a honeypot',
+  })
+  public async onHoneypotEvent(
+    @Context() [interaction]: SlashCommandContext,
+    @Options() { channel }: HoneypotDto,
+  ) {
+    try {
+      const acceptedRole = this.configService.get<string>('ADMIN_ROLE');
+      const member = interaction.member;
+
+      // something is really dumb here where the private _roles has the roles
+      // but the getter roles doesn't
+      //@ts-expect-error
+      const roles: string[] = member != null ? member['_roles'] : [];
+
+      if (!roles.some((r) => r == acceptedRole)) {
+        return interaction.reply({
+          content: 'Only admins can initiate an auto sync',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      if (interaction.guild === null) {
+        return interaction.reply({
+          content: 'GuildId is not valid',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      if (channel === null) {
+        return interaction.reply({
+          content: 'Channel is not valid',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      const result = await this.honeypotUseCase.upsertHoneypot(
+        interaction.guild,
+        channel,
+      );
+
+      switch (result) {
+        case UpsertResult.CREATED:
+          return interaction.reply({
+            content: 'Honeypot created',
+            flags: MessageFlags.Ephemeral,
+          });
+        case UpsertResult.UPDATED:
+          return interaction.reply({
+            content: 'Honeypot updated',
+            flags: MessageFlags.Ephemeral,
+          });
+        default: // Includes error
+          return interaction.reply({
+            content: 'Honeypot failed to create',
+            flags: MessageFlags.Ephemeral,
+          });
+      }
+    } catch (e) {
+      this.logger.error(`Auto sync Event error: `, e);
     }
   }
 }
