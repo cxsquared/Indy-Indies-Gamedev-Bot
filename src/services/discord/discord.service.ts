@@ -100,7 +100,7 @@ export class DiscordService {
   }
 
   public async timeoutMember(member: GuildMember) {
-    await member.timeout(60 * 60 * 24, 'Triggered honeypot');
+    await member.timeout(24 * 60 * 60 * 1000, 'Triggered honeypot');
   }
 
   public async deleteMessage(message: Message) {
