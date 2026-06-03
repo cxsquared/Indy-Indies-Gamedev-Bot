@@ -1,2 +1,7 @@
+allowBuilds:
+  '@nestjs/core': true
+  better-sqlite3: true
+  necord: true
+  unrs-resolver: true
 onlyBuiltDependencies:
   - necord

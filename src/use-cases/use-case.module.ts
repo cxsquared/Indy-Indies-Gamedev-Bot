@@ -1,24 +1,26 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { DiscordModule } from 'src/services/discord/discord.module';
-import { MeetupModule } from 'src/services/meetup/meetup.module';
-import { EventSyncUseCase } from './event-sync.use-case';
-import { DiscordCommandsUseCase } from './discord-commands.use-case';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AutoSync } from 'src/services/typeorm/entities/auto-sync.entity';
-import { SyncedEvent } from 'src/services/typeorm/entities/synced-event.entity';
-import { Honeypot } from 'src/services/typeorm/entities/honeypot.entity';
-import { HoneypotEvent } from 'src/services/typeorm/entities/honeypot-event.entity';
+import { MeetupModule } from '@services/meetup/meetup.module';
+import { AutoSync } from '@services/typeorm/entities/auto-sync.entity';
+import { HoneypotEvent } from '@services/typeorm/entities/honeypot-event.entity';
+import { Honeypot } from '@services/typeorm/entities/honeypot.entity';
+import { SyncedEvent } from '@services/typeorm/entities/synced-event.entity';
+import { EventSyncUseCase } from './event-sync.use-case';
 import { HoneypotUseCase } from './honeypot.use-case';
+import { DiscordModule } from '@services/discord/discord.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    DiscordModule,
+    ConfigModule.forRoot(),
     MeetupModule,
+    DiscordModule,
     ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([AutoSync, SyncedEvent, Honeypot, HoneypotEvent]),
   ],
-  providers: [EventSyncUseCase, DiscordCommandsUseCase, HoneypotUseCase],
-  exports: [EventSyncUseCase, DiscordCommandsUseCase, HoneypotUseCase],
+  providers: [EventSyncUseCase, HoneypotUseCase],
+  exports: [EventSyncUseCase, HoneypotUseCase],
 })
 export class UseCaseModule {}
+

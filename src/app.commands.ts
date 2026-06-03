@@ -35,11 +35,18 @@ export class SyncEventsDto {
 export class HoneypotDto {
   @ChannelOption({
     name: 'channel',
-    description: 'The voice channel to attach to online events',
+    description: 'The text channel to designate as the honeypot. Any posts in this channel will ban the user',
     required: true,
     channel_types: [ChannelType.GuildText],
   })
   channel: GuildChannel;
+  @ChannelOption({
+    name: 'notification-channel',
+    description: 'What channel should we post in if the honeypot bans a user',
+    required: false,
+    channel_types: [ChannelType.GuildText],
+  })
+  notificationChannel?: GuildChannel;
 }
 
 @Injectable()
@@ -232,7 +239,7 @@ export class AppCommands {
   })
   public async onHoneypotEvent(
     @Context() [interaction]: SlashCommandContext,
-    @Options() { channel }: HoneypotDto,
+    @Options() { channel, notificationChannel }: HoneypotDto,
   ) {
     try {
       const acceptedRole = this.configService.get<string>('ADMIN_ROLE');
@@ -267,6 +274,7 @@ export class AppCommands {
       const result = await this.honeypotUseCase.upsertHoneypot(
         interaction.guild,
         channel,
+        notificationChannel
       );
 
       switch (result) {

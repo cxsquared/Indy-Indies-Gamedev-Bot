@@ -1,16 +1,16 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { CacheModule } from '@nestjs/cache-manager';
-import { MeetupModule } from './services/meetup/meetup.module';
-import { UseCaseModule } from './use-cases/use-case.module';
-import { NecordModule } from 'necord/dist/necord.module';
-import { IntentsBitField } from 'discord.js';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AppUpdate } from './app.update';
-import { AppCommands } from './app.commands';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AutoSync } from './services/typeorm/entities/auto-sync.entity';
+import { NecordModule } from 'necord/dist/necord.module';
+import { AppCommands } from './app.commands';
+import { AppController } from './app.controller';
 import { AppScheduler } from './app.scheduler';
+import { AppListener } from './app.listener';
+import { MeetupModule } from './services/meetup/meetup.module';
+import { AutoSync } from './services/typeorm/entities/auto-sync.entity';
+import { UseCaseModule } from './use-cases/use-case.module';
+import { GatewayIntentBits } from 'discord.js';
 
 @Module({
   imports: [
@@ -24,7 +24,7 @@ import { AppScheduler } from './app.scheduler';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         token: configService.get<string>('DISCORD_TOKEN') ?? '',
-        intents: [IntentsBitField.Flags.GuildScheduledEvents],
+        intents: [GatewayIntentBits.GuildModeration, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildScheduledEvents],
         development: configService.get<string>('DEV_SERVER_ID')
           ? [configService.get<string>('DEV_SERVER_ID') ?? '']
           : false,
@@ -41,6 +41,6 @@ import { AppScheduler } from './app.scheduler';
     TypeOrmModule.forFeature([AutoSync]),
   ],
   controllers: [AppController],
-  providers: [AppUpdate, AppCommands, AppScheduler],
+  providers: [AppListener, AppCommands, AppScheduler],
 })
 export class AppModule {}

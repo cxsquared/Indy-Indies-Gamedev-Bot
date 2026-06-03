@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Client, Guild, GuildChannel } from 'discord.js';
 import {
   DiscordService,
   type CreateEventDto,
-} from 'src/services/discord/discord.service';
-import { MeetupService } from 'src/services/meetup/meetup.service';
-import { AutoSync } from 'src/services/typeorm/entities/auto-sync.entity';
-import { SyncedEvent } from 'src/services/typeorm/entities/synced-event.entity';
-import { Event } from 'src/types/__generated__/graphql';
+} from '@services/discord/discord.service';
+import { MeetupService } from '@services/meetup/meetup.service';
+import { AutoSync } from '@services/typeorm/entities/auto-sync.entity';
+import { SyncedEvent } from '@services/typeorm/entities/synced-event.entity';
+import { Client, Guild, GuildChannel } from 'discord.js';
 import { In, Repository } from 'typeorm';
+import { Event } from '../types/__generated__/graphql';
 
 @Injectable()
 export class EventSyncUseCase {
@@ -20,8 +20,7 @@ export class EventSyncUseCase {
     private readonly meetupService: MeetupService,
     private readonly discordService: DiscordService,
     @InjectRepository(AutoSync) private autoSyncRepo: Repository<AutoSync>,
-    @InjectRepository(SyncedEvent)
-    private syncedEventRepo: Repository<SyncedEvent>,
+    @InjectRepository(SyncedEvent) private syncedEventRepo: Repository<SyncedEvent>,
   ) {}
 
   async eventAutoSync(guildIdsToSync?: string[]) {

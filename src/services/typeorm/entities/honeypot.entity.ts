@@ -17,11 +17,14 @@ export class Honeypot {
   @Column({ unique: true })
   guildId: string; // technically a snowflake
 
-  @Column()
+  @Column({ nullable: false })
   channelId: string; // technically a snowflake
 
   @OneToMany(() => HoneypotEvent, (event) => event.honeypot)
   events: HoneypotEvent[];
+
+  @Column()
+  notifyChannelId?: string; // technically a snowflake
 
   @CreateDateColumn()
   created!: Date;

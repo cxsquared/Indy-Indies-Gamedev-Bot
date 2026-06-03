@@ -1,13 +1,15 @@
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ChannelType,
   Client,
   Guild,
   GuildChannel,
+  GuildMember,
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
-  GuildMember,
+  Snowflake,
+  TextChannel,
 } from 'discord.js';
 
 export type CreateEventDto = {
@@ -29,13 +31,15 @@ export class DiscordService {
     private readonly client: Client,
   ) {}
 
+  private readonly logger = new Logger(DiscordService.name);
+
   public async createEvent(guild: Guild, event: CreateEventDto): Promise<void> {
     const manager = await this.client.guilds.fetch({
       guild,
     });
 
     if (!manager) {
-      console.log("couldn't find guild");
+      this.logger.warn(`Could not find Guild ${guild.id}`)
       return;
     }
 
@@ -58,8 +62,7 @@ export class DiscordService {
 
       if (eventsByName.has(event.name)) {
         // We found a match in name so we aren't going to create a new one
-        return;
-      }
+        return; }
     }
 
     await manager.scheduledEvents.create({
@@ -84,14 +87,30 @@ export class DiscordService {
     });
 
     if (!manager) {
-      console.log("couldn't find guild");
+      this.logger.warn(`Could not find Guild ${guild.id}`)
       return;
     }
 
     await manager.members.ban(member, {
-      deleteMessageDays: 1,
+      deleteMessageSeconds: 60 * 60 * 24,
       reason: 'Triggered honeypot',
     });
+  }
+
+  public async sendMessage(message: string, guild: Guild, channelId: Snowflake) {
+    const fetchedChannel = await guild.channels.fetch(channelId)
+
+    if (!fetchedChannel) {
+      this.logger.warn(`Could not find channel ${channelId} for Guild ${guild.id}`)
+      return
+    }
+
+    if (!fetchedChannel.isSendable() || !fetchedChannel.isTextBased()) {
+      this.logger.warn(`Could not send to the channel ${channelId} for Guild ${guild.id}`)
+      return
+    }
+
+    await (fetchedChannel as TextChannel).send(message);
   }
 
   private getEventEntityType(
