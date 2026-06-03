@@ -8,9 +8,11 @@ import {
   GuildMember,
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
+  Message,
   Snowflake,
   TextChannel,
 } from 'discord.js';
+import { matchesGlob } from 'path';
 
 export type CreateEventDto = {
   eventId: string;
@@ -95,6 +97,14 @@ export class DiscordService {
       deleteMessageSeconds: 60 * 60 * 24,
       reason: 'Triggered honeypot',
     });
+  }
+
+  public async timeoutMember(member: GuildMember) {
+    await member.timeout(60 * 60 * 24, 'Triggered honeypot');
+  }
+
+  public async deleteMessage(message: Message) {
+    await message.delete(); 
   }
 
   public async sendMessage(message: string, guild: Guild, channelId: Snowflake) {

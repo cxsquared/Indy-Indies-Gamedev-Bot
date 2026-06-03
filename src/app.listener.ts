@@ -20,19 +20,15 @@ export class AppListener {
 
   @On('messageCreate')
   public onMessageCreated(@Context() [message]: ContextOf<'messageCreate'>) {
-    if (message.author.bot) {
-      return;
-    }
-
-    this.logger.debug(`checking message : ${JSON.stringify(message)}`)
-
     try {
-      this.honeypotUseCase.onDiscordMessage(
-        message.guild,
-        message.channel,
-        message.member,
-        message.content,
-      );
+      if (message.author.bot) {
+        return;
+      }
+
+      this.logger.debug(`checking message : ${JSON.stringify(message)}`)
+
+
+      this.honeypotUseCase.onDiscordMessage(message);
     } catch (e) {
       this.logger.error(`Failed to parse message: ${e}`)
     }

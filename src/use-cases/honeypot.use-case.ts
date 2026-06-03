@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DiscordService } from '@services/discord/discord.service';
 import { HoneypotEvent } from '@services/typeorm/entities/honeypot-event.entity';
 import { Honeypot } from '@services/typeorm/entities/honeypot.entity';
-import { Channel, Guild, GuildChannel, GuildMember } from 'discord.js';
+import { Guild, GuildChannel, Message } from 'discord.js';
 import { Repository } from 'typeorm';
 
 export enum UpsertResult {
@@ -60,12 +60,9 @@ export class HoneypotUseCase {
     }
   }
 
-  async onDiscordMessage(
-    guild: Guild | null,
-    channel: Channel,
-    member: GuildMember | null,
-    content: string,
-  ) {
+  async onDiscordMessage(message: Message) {
+    const { guild, member, content, channel } = message; 
+
     if (guild === null) {
       this.logger.warn('got a message from a null guild');
       return;
@@ -89,23 +86,25 @@ export class HoneypotUseCase {
     const roles = fetchedMember != null ? fetchedMember['_roles'] : [];
 
     if (roles.some(role => role === ignoredRole)) {
-      this.logger.debug(`Not banning admin: ${JSON.stringify(member)}`)
-      await this.notify(`Did not ban ${member?.displayName} but they should stop posting in the honeypot channel`, honeypot, guild);
+      this.logger.debug(`Not timing out admin: ${JSON.stringify(member)}`)
+      await this.discordService.deleteMessage(message);
+      await this.notify(`Did not time out ${member.user.toString()} but they should stop posting in the honeypot channel`, honeypot, guild);
       return;
     }
 
-    this.logger.debug(`Banning: ${JSON.stringify(member)}`)
+    this.logger.debug(`Timing out: ${JSON.stringify(member)}`)
 
-    await this.discordService.banMember(guild, member);
+    await this.discordService.timeoutMember(member);
+    await this.discordService.deleteMessage(message);
 
-    const user = await member.user.fetch();
     const guildChannel = await guild.channels.fetch(channel.id);
-    await this.notify(`${user.globalName} (${member.displayName}) was banned for posting "${content}" in the channel "${guildChannel?.name ?? "**unknown channel name**"} (${channel.id})"`, honeypot, guild);
+
+    await this.notify(`${member.user.toString()} was timedout for posting "${content}" in the channel "${guildChannel?.name ?? "**unknown channel name**"} (${channel.id})" please take a look at this`, honeypot, guild);
 
     await this.honeypotEventRepo.save({
       honeypot: honeypot,
       memberId: member.id,
-      event: 'BAN',
+      event: 'Timeout',
       message: content,
     } as HoneypotEvent);
   }
