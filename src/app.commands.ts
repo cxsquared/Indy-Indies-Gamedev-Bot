@@ -78,24 +78,27 @@ export class AppCommands {
       const roles: string[] = member != null ? member['_roles'] : [];
 
       if (!roles.some((r) => r == acceptedRole)) {
-        return interaction.reply({
+        await interaction.reply({
           content: 'Only admins can initiate a sync',
           flags: MessageFlags.Ephemeral,
         });
+        return
       }
 
       if (interaction.guild === null) {
-        return interaction.reply({
+        await interaction.reply({
           content: 'GuildId is not valid',
           flags: MessageFlags.Ephemeral,
         });
+        return
       }
 
       if (urlname === null || urlname.replaceAll(' ', '') === '') {
-        return interaction.reply({
+        await interaction.reply({
           content: 'urlname is not valid',
           flags: MessageFlags.Ephemeral,
         });
+        return
       }
 
       await this.eventSyncUseCase.syncEvents(
@@ -104,10 +107,11 @@ export class AppCommands {
         urlname,
       );
 
-      return interaction.reply({
+      await interaction.reply({
         content: 'Events synced',
         flags: MessageFlags.Ephemeral,
       });
+      return
     } catch (e) {
       this.logger.error(`Sync Event error: ${JSON.stringify(e)}`);
     }
@@ -131,24 +135,27 @@ export class AppCommands {
       const roles: string[] = member != null ? member['_roles'] : [];
 
       if (!roles.some((r) => r == acceptedRole)) {
-        return interaction.reply({
+        await interaction.reply({
           content: 'Only admins can initiate an auto sync',
           flags: MessageFlags.Ephemeral,
         });
+        return
       }
 
       if (interaction.guild === null) {
-        return interaction.reply({
+        await interaction.reply({
           content: 'GuildId is not valid',
           flags: MessageFlags.Ephemeral,
         });
+        return
       }
 
       if (urlname === null || urlname.replaceAll(' ', '') === '') {
-        return interaction.reply({
+        await interaction.reply({
           content: 'urlname is not valid',
           flags: MessageFlags.Ephemeral,
         });
+        return
       }
 
       const existingAutoSync = await this.autoSyncRepo.findOneBy({
@@ -159,11 +166,12 @@ export class AppCommands {
         existingAutoSync.channelId = channel.id;
         existingAutoSync.urlname = urlname;
 
-        this.autoSyncRepo.save(existingAutoSync);
-        return interaction.reply({
+        await this.autoSyncRepo.save(existingAutoSync);
+        await interaction.reply({
           content: 'Auto sync updated',
           flags: MessageFlags.Ephemeral,
         });
+        return
       }
 
       await this.autoSyncRepo.save(
@@ -174,10 +182,12 @@ export class AppCommands {
         }),
       );
 
-      return interaction.reply({
+      await interaction.reply({
         content: 'Auto sync scheduled',
         flags: MessageFlags.Ephemeral,
       });
+
+      return
     } catch (e) {
       this.logger.error(`Auto sync Event error: `, e);
     }
@@ -198,17 +208,21 @@ export class AppCommands {
       const roles: string[] = member != null ? member['_roles'] : [];
 
       if (!roles.some((r) => r == acceptedRole)) {
-        return interaction.reply({
+        await interaction.reply({
           content: 'Only admins can initiate an auto sync',
           flags: MessageFlags.Ephemeral,
         });
+
+        return
       }
 
       if (interaction.guild === null) {
-        return interaction.reply({
+        await interaction.reply({
           content: 'GuildId is not valid',
           flags: MessageFlags.Ephemeral,
         });
+
+        return
       }
 
       const existingAutoSync = await this.autoSyncRepo.findOneBy({
@@ -218,16 +232,20 @@ export class AppCommands {
       if (existingAutoSync) {
         await this.autoSyncRepo.softDelete(existingAutoSync.id);
 
-        return interaction.reply({
+        await interaction.reply({
           content: 'Auto sync stopped',
           flags: MessageFlags.Ephemeral,
         });
+
+        return
       }
 
-      return interaction.reply({
+      await interaction.reply({
         content: 'No Auto sync scheduled',
         flags: MessageFlags.Ephemeral,
       });
+
+      return
     } catch (e) {
       this.logger.error(`Stop auto sync Event error: ${JSON.stringify(e)}`);
     }
@@ -251,24 +269,30 @@ export class AppCommands {
       const roles: string[] = member != null ? member['_roles'] : [];
 
       if (!roles.some((r) => r == acceptedRole)) {
-        return interaction.reply({
-          content: 'Only admins can initiate an auto sync',
+        await interaction.reply({
+          content: 'Only admins can preform this action',
           flags: MessageFlags.Ephemeral,
         });
+
+        return 
       }
 
       if (interaction.guild === null) {
-        return interaction.reply({
+        await interaction.reply({
           content: 'GuildId is not valid',
           flags: MessageFlags.Ephemeral,
         });
+
+        return
       }
 
       if (channel === null) {
-        return interaction.reply({
+        await interaction.reply({
           content: 'Channel is not valid',
           flags: MessageFlags.Ephemeral,
         });
+        
+        return
       }
 
       const result = await this.honeypotUseCase.upsertHoneypot(
@@ -279,23 +303,29 @@ export class AppCommands {
 
       switch (result) {
         case UpsertResult.CREATED:
-          return interaction.reply({
+          await interaction.reply({
             content: 'Honeypot created',
             flags: MessageFlags.Ephemeral,
           });
+
+          return
         case UpsertResult.UPDATED:
-          return interaction.reply({
+          await interaction.reply({
             content: 'Honeypot updated',
             flags: MessageFlags.Ephemeral,
           });
+
+          return
         default: // Includes error
-          return interaction.reply({
+          await interaction.reply({
             content: 'Honeypot failed to create',
             flags: MessageFlags.Ephemeral,
           });
+
+          return
       }
     } catch (e) {
-      this.logger.error(`Auto sync Event error: `, e);
+      this.logger.error(`Honeypot Event error: `, e);
     }
   }
 }
