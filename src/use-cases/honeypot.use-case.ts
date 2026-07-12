@@ -25,7 +25,7 @@ export class HoneypotUseCase {
     private honeypotRepo: Repository<Honeypot>,
     @InjectRepository(HoneypotEvent)
     private honeypotEventRepo: Repository<HoneypotEvent>,
-  ) {}
+  ) { }
 
   async upsertHoneypot(
     guild: Guild,
@@ -61,7 +61,7 @@ export class HoneypotUseCase {
   }
 
   async onDiscordMessage(message: Message) {
-    const { guild, member, content, channel } = message; 
+    const { guild, member, content, channel } = message;
 
     if (guild === null) {
       this.logger.warn('got a message from a null guild');
@@ -92,9 +92,9 @@ export class HoneypotUseCase {
       return;
     }
 
-    this.logger.debug(`Timing out: ${JSON.stringify(member)}`)
+    this.logger.debug(`Banning: ${JSON.stringify(member)}`)
 
-    await this.discordService.timeoutMember(member);
+    await this.discordService.banMember(guild, member);
     await this.discordService.deleteMessage(message);
 
     const guildChannel = await guild.channels.fetch(channel.id);
@@ -109,7 +109,7 @@ export class HoneypotUseCase {
     } as HoneypotEvent);
   }
 
-  private async notify(message: string, honeypot:Honeypot, guild: Guild) {
+  private async notify(message: string, honeypot: Honeypot, guild: Guild) {
     if (honeypot.notifyChannelId) {
       await this.discordService.sendMessage(message, guild, honeypot.notifyChannelId);
     }

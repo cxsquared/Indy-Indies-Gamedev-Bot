@@ -31,7 +31,7 @@ export class DiscordService {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly client: Client,
-  ) {}
+  ) { }
 
   private readonly logger = new Logger(DiscordService.name);
 
@@ -64,15 +64,16 @@ export class DiscordService {
 
       if (eventsByName.has(event.name)) {
         // We found a match in name so we aren't going to create a new one
-        return; }
+        return;
+      }
     }
 
     await manager.scheduledEvents.create({
       channel: event.location ? undefined : event.channel?.id,
       entityMetadata: event.location
         ? {
-            location: event.location,
-          }
+          location: event.location,
+        }
         : undefined,
       name: event.name,
       privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
@@ -104,7 +105,7 @@ export class DiscordService {
   }
 
   public async deleteMessage(message: Message) {
-    await message.delete(); 
+    await message.delete();
   }
 
   public async sendMessage(message: string, guild: Guild, channelId: Snowflake) {
