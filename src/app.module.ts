@@ -24,7 +24,7 @@ import { GatewayIntentBits } from 'discord.js';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         token: configService.get<string>('DISCORD_TOKEN') ?? '',
-        intents: [GatewayIntentBits.GuildModeration, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildScheduledEvents],
+        intents: [GatewayIntentBits.MessageContent, GatewayIntentBits.GuildModeration, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildScheduledEvents],
         development: configService.get<string>('DEV_SERVER_ID')
           ? [configService.get<string>('DEV_SERVER_ID') ?? '']
           : false,
@@ -43,4 +43,4 @@ import { GatewayIntentBits } from 'discord.js';
   controllers: [AppController],
   providers: [AppListener, AppCommands, AppScheduler],
 })
-export class AppModule {}
+export class AppModule { }

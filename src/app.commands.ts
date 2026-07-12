@@ -58,7 +58,7 @@ export class AppCommands {
     private readonly configService: ConfigService,
     @InjectRepository(AutoSync)
     private readonly autoSyncRepo: Repository<AutoSync>,
-  ) {}
+  ) { }
 
   @SlashCommand({
     name: 'sync',
@@ -78,6 +78,7 @@ export class AppCommands {
       const roles: string[] = member != null ? member['_roles'] : [];
 
       if (!roles.some((r) => r == acceptedRole)) {
+        this.logger.debug(`this user is not an admin: ${JSON.stringify(member)}`)
         await interaction.reply({
           content: 'Only admins can initiate a sync',
           flags: MessageFlags.Ephemeral,
@@ -274,7 +275,7 @@ export class AppCommands {
           flags: MessageFlags.Ephemeral,
         });
 
-        return 
+        return
       }
 
       if (interaction.guild === null) {
@@ -291,7 +292,7 @@ export class AppCommands {
           content: 'Channel is not valid',
           flags: MessageFlags.Ephemeral,
         });
-        
+
         return
       }
 
